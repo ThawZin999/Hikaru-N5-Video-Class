@@ -1,4 +1,5 @@
 import TelegramBot from "node-telegram-bot-api";
+import express from "express";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -8,50 +9,68 @@ const APPROVED_USERS = process.env.APPROVED_USERS
   ? process.env.APPROVED_USERS.split(",").map((id) => Number(id.trim()))
   : [];
 
-const bot = new TelegramBot(TOKEN, { polling: true });
+const bot = new TelegramBot(TOKEN);
+const app = express();
+app.use(express.json());
 
-bot.on("message", (msg) => {
-  const chatId = msg.chat.id;
-  const userId = msg.from.id;
+app.post("/api/webhook", async (req, res) => {
+  try {
+    const { message, callback_query } = req.body;
 
-  if (!APPROVED_USERS.includes(userId)) {
-    bot.sendMessage(
-      chatId,
-      "❌ Sorry, you are not authorized to use this bot."
-    );
-    return;
+    if (message) {
+      const chatId = message.chat.id;
+      const userId = message.from.id;
+
+      if (!APPROVED_USERS.includes(userId)) {
+        await bot.sendMessage(
+          chatId,
+          "❌ Sorry, you are not authorized to use this bot."
+        );
+        return res.sendStatus(403);
+      }
+
+      const options = {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: "📚 Daily Lessons", callback_data: "daily_lessons" }],
+            [{ text: "📖 Units", callback_data: "units" }],
+          ],
+        },
+      };
+
+      await bot.sendMessage(
+        chatId,
+        "Welcome to Hikaru N5 Video Class! Choose an option:",
+        options
+      );
+    }
+
+    if (callback_query) {
+      const chatId = callback_query.message.chat.id;
+      const userId = callback_query.from.id;
+
+      if (!APPROVED_USERS.includes(userId)) {
+        await bot.answerCallbackQuery(callback_query.id, {
+          text: "❌ Access denied!",
+        });
+        return res.sendStatus(403);
+      }
+
+      if (callback_query.data === "daily_lessons") {
+        await bot.sendMessage(chatId, "📅 Here are your daily lessons...");
+      } else if (callback_query.data === "units") {
+        await bot.sendMessage(chatId, "📖 Here are the available units...");
+      }
+
+      await bot.answerCallbackQuery(callback_query.id);
+    }
+
+    res.sendStatus(200);
+  } catch (error) {
+    console.error("Error processing request:", error);
+    res.status(500).send("Internal Server Error");
   }
-
-  const options = {
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: "📚 Daily Lessons", callback_data: "daily_lessons" }],
-        [{ text: "📖 Units", callback_data: "units" }],
-      ],
-    },
-  };
-
-  bot.sendMessage(
-    chatId,
-    "Welcome to Hikaru N5 Video Class! Choose an option:",
-    options
-  );
 });
 
-bot.on("callback_query", (query) => {
-  const chatId = query.message.chat.id;
-  const userId = query.from.id;
-
-  if (!APPROVED_USERS.includes(userId)) {
-    bot.answerCallbackQuery(query.id, { text: "❌ Access denied!" });
-    return;
-  }
-
-  if (query.data === "daily_lessons") {
-    bot.sendMessage(chatId, "📅 Here are your daily lessons...");
-  } else if (query.data === "units") {
-    bot.sendMessage(chatId, "📖 Here are the available units...");
-  }
-
-  bot.answerCallbackQuery(query.id);
-});
+// **Export a function instead of starting an Express server**
+export default app;
