@@ -30,6 +30,10 @@ app.post("/api/webhook", async (req, res) => {
     }
 
     if (!APPROVED_USERS.includes(userId)) {
+      await bot.sendMessage(
+        chatId,
+        "❌ Sorry, you are not authorized to use this bot."
+      );
       return res.status(403).send("Forbidden: User not approved.");
     }
 
