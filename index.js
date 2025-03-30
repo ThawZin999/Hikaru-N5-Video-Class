@@ -6,13 +6,13 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const TOKEN = process.env.BOT_TOKEN;
-const bot = new TelegramBot(TOKEN, { polling: true });
+const bot = new TelegramBot(TOKEN);
 const app = express();
-const ADMIN_ID = 6057736787; // Replace with your Telegram ID
+const ADMIN_ID = 6057736787; // Replace with your real Telegram ID
 
 app.use(express.json());
 
-// Function to read approved users from JSON file
+// Function to read approved users
 const getApprovedUsers = () => {
   try {
     const data = fs.readFileSync("approvedUsers.json", "utf8");
@@ -23,7 +23,7 @@ const getApprovedUsers = () => {
   }
 };
 
-// Function to add a new user
+// Function to add new users
 const addUser = (userId) => {
   try {
     const approvedUsers = getApprovedUsers();
@@ -41,28 +41,6 @@ const addUser = (userId) => {
     return false;
   }
 };
-
-bot.onText(/\/adduser (\d+)/, (msg, match) => {
-  const chatId = msg.chat.id;
-  const senderId = msg.from.id;
-  const newUserId = parseInt(match[1]);
-
-  if (senderId !== ADMIN_ID) {
-    bot.sendMessage(chatId, "❌ You are not authorized to add users.");
-    return;
-  }
-
-  if (isNaN(newUserId)) {
-    bot.sendMessage(chatId, "❌ Invalid user ID. Please enter a valid number.");
-    return;
-  }
-
-  if (addUser(newUserId)) {
-    bot.sendMessage(chatId, `✅ User ID ${newUserId} has been added.`);
-  } else {
-    bot.sendMessage(chatId, `⚠️ User ID ${newUserId} is already approved.`);
-  }
-});
 
 app.post("/api/webhook", async (req, res) => {
   try {
@@ -89,7 +67,36 @@ app.post("/api/webhook", async (req, res) => {
       return res.status(403).send("Forbidden: User not approved.");
     }
 
-    if (message) {
+    if (message?.text?.startsWith("/adduser")) {
+      if (userId !== ADMIN_ID) {
+        await bot.sendMessage(
+          chatId,
+          "❌ You are not authorized to add users."
+        );
+        return res.status(403).send("Forbidden: Not admin.");
+      }
+
+      const newUserId = parseInt(message.text.split(" ")[1]);
+      if (!newUserId) {
+        await bot.sendMessage(
+          chatId,
+          "⚠️ Invalid user ID. Use `/adduser <id>`."
+        );
+        return res.status(400).send("Invalid user ID.");
+      }
+
+      if (addUser(newUserId)) {
+        await bot.sendMessage(
+          chatId,
+          `✅ User ID ${newUserId} added successfully.`
+        );
+      } else {
+        await bot.sendMessage(
+          chatId,
+          `⚠️ User ID ${newUserId} is already approved.`
+        );
+      }
+    } else {
       const options = {
         reply_markup: {
           inline_keyboard: [
