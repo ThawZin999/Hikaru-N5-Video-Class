@@ -11,24 +11,35 @@ const APPROVED_USERS = process.env.APPROVED_USERS
 
 const bot = new TelegramBot(TOKEN);
 const app = express();
+
+// Ensure correct parsing
 app.use(express.json());
 
+// Allow Telegram requests
 app.post("/api/webhook", async (req, res) => {
   try {
     const { message, callback_query } = req.body;
 
+    if (!message && !callback_query) {
+      return res.status(400).send("No valid Telegram update found.");
+    }
+
+    const userId = message?.from?.id || callback_query?.from?.id;
+    const chatId = message?.chat?.id || callback_query?.message?.chat?.id;
+
+    if (!userId || !chatId) {
+      return res.status(400).send("Invalid request data.");
+    }
+
+    if (!APPROVED_USERS.includes(userId)) {
+      await bot.sendMessage(
+        chatId,
+        "❌ Sorry, you are not authorized to use this bot."
+      );
+      return res.status(403).send("Forbidden: User not approved.");
+    }
+
     if (message) {
-      const chatId = message.chat.id;
-      const userId = message.from.id;
-
-      if (!APPROVED_USERS.includes(userId)) {
-        await bot.sendMessage(
-          chatId,
-          "❌ Sorry, you are not authorized to use this bot."
-        );
-        return res.sendStatus(403);
-      }
-
       const options = {
         reply_markup: {
           inline_keyboard: [
@@ -46,22 +57,11 @@ app.post("/api/webhook", async (req, res) => {
     }
 
     if (callback_query) {
-      const chatId = callback_query.message.chat.id;
-      const userId = callback_query.from.id;
-
-      if (!APPROVED_USERS.includes(userId)) {
-        await bot.answerCallbackQuery(callback_query.id, {
-          text: "❌ Access denied!",
-        });
-        return res.sendStatus(403);
-      }
-
       if (callback_query.data === "daily_lessons") {
         await bot.sendMessage(chatId, "📅 Here are your daily lessons...");
       } else if (callback_query.data === "units") {
         await bot.sendMessage(chatId, "📖 Here are the available units...");
       }
-
       await bot.answerCallbackQuery(callback_query.id);
     }
 
@@ -72,5 +72,5 @@ app.post("/api/webhook", async (req, res) => {
   }
 });
 
-// **Export a function instead of starting an Express server**
+// Correctly export app for Vercel
 export default app;
