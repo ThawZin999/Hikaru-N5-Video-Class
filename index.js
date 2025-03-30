@@ -1,21 +1,3 @@
-import TelegramBot from "node-telegram-bot-api";
-import express from "express";
-import dotenv from "dotenv";
-
-dotenv.config();
-
-const TOKEN = process.env.BOT_TOKEN;
-const APPROVED_USERS = process.env.APPROVED_USERS
-  ? process.env.APPROVED_USERS.split(",").map((id) => Number(id.trim()))
-  : [];
-
-const bot = new TelegramBot(TOKEN);
-const app = express();
-
-// Ensure correct parsing
-app.use(express.json());
-
-// Allow Telegram requests
 app.post("/api/webhook", async (req, res) => {
   try {
     const { message, callback_query } = req.body;
@@ -31,14 +13,12 @@ app.post("/api/webhook", async (req, res) => {
       return res.status(400).send("Invalid request data.");
     }
 
+    // ✅ Fast rejection for unapproved users
     if (!APPROVED_USERS.includes(userId)) {
-      await bot.sendMessage(
-        chatId,
-        "❌ Sorry, you are not authorized to use this bot."
-      );
       return res.status(403).send("Forbidden: User not approved.");
     }
 
+    // Process approved users only
     if (message) {
       const options = {
         reply_markup: {
@@ -71,6 +51,3 @@ app.post("/api/webhook", async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
-
-// Correctly export app for Vercel
-export default app;
