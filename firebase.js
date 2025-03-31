@@ -1,14 +1,13 @@
 import admin from "firebase-admin";
-import fs from "fs";
 
-// Load Firebase credentials from the JSON key file
-const serviceAccount = JSON.parse(
-  fs.readFileSync("./firebase-adminsdk.json", "utf8")
-);
+// Parse the environment variable
+const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-});
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+  });
+}
 
 const db = admin.firestore();
 const usersCollection = db.collection("approvedUsers");
