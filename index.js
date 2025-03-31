@@ -1,7 +1,7 @@
-import fs from "fs";
 import TelegramBot from "node-telegram-bot-api";
 import express from "express";
 import dotenv from "dotenv";
+import { usersCollection } from "./firebase.js";
 
 dotenv.config();
 
@@ -12,34 +12,20 @@ const ADMIN_ID = 6057736787; // Replace with your real Telegram ID
 
 app.use(express.json());
 
-// Function to read approved users
-const getApprovedUsers = () => {
-  try {
-    const data = fs.readFileSync("approvedUsers.json", "utf8");
-    return JSON.parse(data).users || [];
-  } catch (error) {
-    console.error("Error reading approved users:", error);
-    return [];
-  }
+// ✅ Get approved users from Firestore
+const getApprovedUsers = async () => {
+  const snapshot = await usersCollection.get();
+  return snapshot.docs.map((doc) => parseInt(doc.id));
 };
 
-// Function to add new users
-const addUser = (userId) => {
-  try {
-    const approvedUsers = getApprovedUsers();
-    if (!approvedUsers.includes(userId)) {
-      approvedUsers.push(userId);
-      fs.writeFileSync(
-        "approvedUsers.json",
-        JSON.stringify({ users: approvedUsers }, null, 2)
-      );
-      return true;
-    }
-    return false;
-  } catch (error) {
-    console.error("Error updating approved users:", error);
-    return false;
-  }
+// ✅ Add a new user to Firestore
+const addUser = async (userId) => {
+  await usersCollection.doc(userId.toString()).set({ approved: true });
+};
+
+// ✅ Remove a user from Firestore
+const removeUser = async (userId) => {
+  await usersCollection.doc(userId.toString()).delete();
 };
 
 app.post("/api/webhook", async (req, res) => {
@@ -57,7 +43,7 @@ app.post("/api/webhook", async (req, res) => {
       return res.status(400).send("Invalid request data.");
     }
 
-    const APPROVED_USERS = getApprovedUsers();
+    const APPROVED_USERS = await getApprovedUsers();
 
     if (!APPROVED_USERS.includes(userId)) {
       await bot.sendMessage(
@@ -85,17 +71,34 @@ app.post("/api/webhook", async (req, res) => {
         return res.status(400).send("Invalid user ID.");
       }
 
-      if (addUser(newUserId)) {
+      await addUser(newUserId);
+      await bot.sendMessage(
+        chatId,
+        `✅ User ID ${newUserId} added successfully.`
+      );
+    } else if (message?.text?.startsWith("/removeuser")) {
+      if (userId !== ADMIN_ID) {
         await bot.sendMessage(
           chatId,
-          `✅ User ID ${newUserId} added successfully.`
+          "❌ You are not authorized to remove users."
         );
-      } else {
-        await bot.sendMessage(
-          chatId,
-          `⚠️ User ID ${newUserId} is already approved.`
-        );
+        return res.status(403).send("Forbidden: Not admin.");
       }
+
+      const removeUserId = parseInt(message.text.split(" ")[1]);
+      if (!removeUserId) {
+        await bot.sendMessage(
+          chatId,
+          "⚠️ Invalid user ID. Use `/removeuser <id>`."
+        );
+        return res.status(400).send("Invalid user ID.");
+      }
+
+      await removeUser(removeUserId);
+      await bot.sendMessage(
+        chatId,
+        `✅ User ID ${removeUserId} removed successfully.`
+      );
     } else {
       const options = {
         reply_markup: {
