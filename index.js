@@ -10,20 +10,6 @@ const bot = new TelegramBot(TOKEN, { polling: false }); // No polling in webhook
 const app = express();
 const ADMIN_ID = 6057736787; // Your Telegram ID
 
-// Set webhook URL when the server starts
-const WEBHOOK_URL = process.env.WEBHOOK_URL;
-if (!WEBHOOK_URL) {
-  console.error('WEBHOOK_URL environment variable is not set');
-  process.exit(1);
-}
-
-bot.setWebHook(WEBHOOK_URL).then(() => {
-  console.log('Webhook set successfully!');
-}).catch((error) => {
-  console.error('Failed to set webhook:', error);
-  process.exit(1);
-});
-
 app.use(express.json());
 
 // ✅ Get approved users from Firestore
@@ -43,7 +29,6 @@ const removeUser = async (userId) => {
 };
 
 app.post("/api/webhook", async (req, res) => {
-  console.log('Received webhook update:', JSON.stringify(req.body));
   try {
     const { message, callback_query } = req.body;
 
