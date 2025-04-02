@@ -6,16 +6,16 @@ import { usersCollection } from "./firebase.js";
 dotenv.config();
 
 const TOKEN = process.env.BOT_TOKEN;
-const bot = new TelegramBot(TOKEN);
+const bot = new TelegramBot(TOKEN, { polling: false }); // No polling in webhook mode
 const app = express();
-const ADMIN_ID = 6057736787; // Replace with your real Telegram ID
+const ADMIN_ID = 6057736787; // Your Telegram ID
 
 app.use(express.json());
 
 // ✅ Get approved users from Firestore
 const getApprovedUsers = async () => {
   const snapshot = await usersCollection.get();
-  return snapshot.docs.map((doc) => parseInt(doc.id));
+  return snapshot.docs.map((doc) => Number(doc.id)); // Ensuring numeric IDs
 };
 
 // ✅ Add a new user to Firestore
@@ -63,7 +63,7 @@ app.post("/api/webhook", async (req, res) => {
       }
 
       const newUserId = parseInt(message.text.split(" ")[1]);
-      if (!newUserId) {
+      if (!newUserId || isNaN(newUserId)) {
         await bot.sendMessage(
           chatId,
           "⚠️ Invalid user ID. Use `/adduser <id>`."
@@ -76,7 +76,10 @@ app.post("/api/webhook", async (req, res) => {
         chatId,
         `✅ User ID ${newUserId} added successfully.`
       );
-    } else if (message?.text?.startsWith("/removeuser")) {
+      return res.status(200).send("User added.");
+    }
+
+    if (message?.text?.startsWith("/removeuser")) {
       if (userId !== ADMIN_ID) {
         await bot.sendMessage(
           chatId,
@@ -86,7 +89,7 @@ app.post("/api/webhook", async (req, res) => {
       }
 
       const removeUserId = parseInt(message.text.split(" ")[1]);
-      if (!removeUserId) {
+      if (!removeUserId || isNaN(removeUserId)) {
         await bot.sendMessage(
           chatId,
           "⚠️ Invalid user ID. Use `/removeuser <id>`."
@@ -99,23 +102,26 @@ app.post("/api/webhook", async (req, res) => {
         chatId,
         `✅ User ID ${removeUserId} removed successfully.`
       );
-    } else {
-      const options = {
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: "📚 Daily Lessons", callback_data: "daily_lessons" }],
-            [{ text: "📖 Units", callback_data: "units" }],
-          ],
-        },
-      };
-
-      await bot.sendMessage(
-        chatId,
-        "Welcome to Hikaru N5 Video Class! Choose an option:",
-        options
-      );
+      return res.status(200).send("User removed.");
     }
 
+    // ✅ Display menu options
+    const options = {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: "📚 Daily Lessons", callback_data: "daily_lessons" }],
+          [{ text: "📖 Units", callback_data: "units" }],
+        ],
+      },
+    };
+
+    await bot.sendMessage(
+      chatId,
+      "Welcome to Hikaru N5 Video Class! Choose an option:",
+      options
+    );
+
+    // ✅ Handle button clicks
     if (callback_query) {
       if (callback_query.data === "daily_lessons") {
         await bot.sendMessage(chatId, "📅 Here are your daily lessons...");

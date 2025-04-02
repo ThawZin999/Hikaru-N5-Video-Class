@@ -1,6 +1,6 @@
 import admin from "firebase-admin";
 
-// Parse the environment variable
+// Parse the environment variable for Firebase credentials
 const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
 
 if (!admin.apps.length) {
