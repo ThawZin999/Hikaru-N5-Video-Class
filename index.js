@@ -30,26 +30,31 @@ app.post("/api/webhook", async (req, res) => {
     const { message, callback_query } = req.body;
 
     if (!message && !callback_query) {
-      return res.status(400).send("❌ No valid Telegram update found.");
+      return res.status(400).send("No valid Telegram update found.");
     }
 
     const userId = message?.from?.id || callback_query?.from?.id;
     const chatId = message?.chat?.id || callback_query?.message?.chat?.id;
 
     if (!userId || !chatId) {
-      return res.status(400).send("❌ Invalid request data.");
+      return res.status(400).send("Invalid request data.");
     }
 
     const APPROVED_USERS = await getApprovedUsers();
 
     if (!APPROVED_USERS.includes(userId)) {
+      if (message?.text && !message.text.startsWith("/start")) {
+        return res.status(403).send("Forbidden: User not approved.");
+      }
+
       await bot.sendMessage(
         chatId,
-        "❌ You are not authorized to use this bot."
+        "❌ Sorry, you are not authorized to use this bot."
       );
       return res.status(403).send("Forbidden: User not approved.");
     }
 
+    // ✅ Handle Admin Commands
     if (message?.text?.startsWith("/adduser")) {
       if (userId !== ADMIN_ID) {
         await bot.sendMessage(
@@ -102,7 +107,7 @@ app.post("/api/webhook", async (req, res) => {
       return res.status(200).send("User removed.");
     }
 
-    // ✅ Display menu options
+    // ✅ Display Menu Options for Authorized Users
     const options = {
       reply_markup: {
         inline_keyboard: [
@@ -118,7 +123,7 @@ app.post("/api/webhook", async (req, res) => {
       options
     );
 
-    // ✅ Handle button clicks
+    // ✅ Handle Button Clicks
     if (callback_query) {
       if (callback_query.data === "daily_lessons") {
         await bot.sendMessage(chatId, "📅 Here are your daily lessons...");
@@ -130,7 +135,7 @@ app.post("/api/webhook", async (req, res) => {
 
     res.sendStatus(200);
   } catch (error) {
-    console.error("❌ Error processing request:", error);
+    console.error("Error processing request:", error);
     res.status(500).send("Internal Server Error");
   }
 });
