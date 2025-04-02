@@ -1,19 +1,19 @@
 import admin from "firebase-admin";
-import fs from "fs";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+if (!process.env.FIREBASE_CREDENTIALS) {
+  console.error("Error: FIREBASE_CREDENTIALS environment variable is not set");
+  process.exit(1);
+}
 
 let serviceAccount;
-
 try {
-  // Read the Firebase credentials from a local JSON file
-  serviceAccount = JSON.parse(
-    fs.readFileSync(
-      "./hikarun5bot-firebase-adminsdk-fbsvc-79e90f4047.json",
-      "utf8"
-    )
-  );
+  serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
 } catch (error) {
-  console.error("Error reading Firebase credentials file:", error);
-  process.exit(1); // Exit if credentials are missing or invalid
+  console.error("Error parsing FIREBASE_CREDENTIALS:", error);
+  process.exit(1);
 }
 
 if (!admin.apps.length) {
