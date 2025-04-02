@@ -1,9 +1,6 @@
 import TelegramBot from "node-telegram-bot-api";
 import express from "express";
-import dotenv from "dotenv";
 import { usersCollection } from "./firebase.js";
-
-dotenv.config();
 
 const TOKEN = process.env.BOT_TOKEN;
 const bot = new TelegramBot(TOKEN, { polling: false }); // No polling in webhook mode
@@ -15,7 +12,7 @@ app.use(express.json());
 // ✅ Get approved users from Firestore
 const getApprovedUsers = async () => {
   const snapshot = await usersCollection.get();
-  return snapshot.docs.map((doc) => Number(doc.id)); // Ensuring numeric IDs
+  return snapshot.docs.map((doc) => Number(doc.id)); // Ensure numeric IDs
 };
 
 // ✅ Add a new user to Firestore
@@ -33,14 +30,14 @@ app.post("/api/webhook", async (req, res) => {
     const { message, callback_query } = req.body;
 
     if (!message && !callback_query) {
-      return res.status(400).send("No valid Telegram update found.");
+      return res.status(400).send("❌ No valid Telegram update found.");
     }
 
     const userId = message?.from?.id || callback_query?.from?.id;
     const chatId = message?.chat?.id || callback_query?.message?.chat?.id;
 
     if (!userId || !chatId) {
-      return res.status(400).send("Invalid request data.");
+      return res.status(400).send("❌ Invalid request data.");
     }
 
     const APPROVED_USERS = await getApprovedUsers();
@@ -48,7 +45,7 @@ app.post("/api/webhook", async (req, res) => {
     if (!APPROVED_USERS.includes(userId)) {
       await bot.sendMessage(
         chatId,
-        "❌ Sorry, you are not authorized to use this bot."
+        "❌ You are not authorized to use this bot."
       );
       return res.status(403).send("Forbidden: User not approved.");
     }
@@ -133,7 +130,7 @@ app.post("/api/webhook", async (req, res) => {
 
     res.sendStatus(200);
   } catch (error) {
-    console.error("Error processing request:", error);
+    console.error("❌ Error processing request:", error);
     res.status(500).send("Internal Server Error");
   }
 });
