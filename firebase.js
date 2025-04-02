@@ -1,7 +1,12 @@
 import admin from "firebase-admin";
 
-// Parse the environment variable for Firebase credentials
-const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
+let serviceAccount;
+try {
+  serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
+} catch (error) {
+  console.error("Error parsing Firebase credentials:", error);
+  process.exit(1); // Exit the process if credentials are invalid
+}
 
 if (!admin.apps.length) {
   admin.initializeApp({
