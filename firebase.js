@@ -25,14 +25,14 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 const usersCollection = db.collection("approvedUsers");
 
-// ✅ Add user to Firestore
 const addUser = async (userId) => {
   await usersCollection.doc(userId.toString()).set({ approved: true });
+  console.log(`✅ Added user ${userId} to Firestore`);
 };
 
-// ✅ Remove user from Firestore
 const removeUser = async (userId) => {
   await usersCollection.doc(userId.toString()).delete();
+  console.log(`❌ Removed user ${userId} from Firestore`);
 };
 
 // ✅ Get all approved users
