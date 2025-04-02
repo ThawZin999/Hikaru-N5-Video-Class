@@ -56,7 +56,10 @@ app.post("/api/webhook", async (req, res) => {
 
     // ✅ Handle Admin Commands
     if (message?.text?.startsWith("/adduser")) {
+      console.log(`ℹ️ Received /adduser command from user ID: ${userId}`);
+
       if (userId !== ADMIN_ID) {
+        console.log("❌ Unauthorized user tried to add users.");
         await bot.sendMessage(
           chatId,
           "❌ You are not authorized to add users."
@@ -64,8 +67,9 @@ app.post("/api/webhook", async (req, res) => {
         return res.status(403).send("Forbidden: Not admin.");
       }
 
-      const newUserId = parseInt(message.text.split(" ")[1]);
+      const newUserId = parseInt(message.text.split(" ")[1]); // Extract user ID
       if (!newUserId || isNaN(newUserId)) {
+        console.log("⚠️ Invalid user ID format.");
         await bot.sendMessage(
           chatId,
           "⚠️ Invalid user ID. Use `/adduser <id>`."
@@ -74,6 +78,7 @@ app.post("/api/webhook", async (req, res) => {
       }
 
       await addUser(newUserId);
+      console.log(`✅ Added user ${newUserId} to Firestore`);
       await bot.sendMessage(
         chatId,
         `✅ User ID ${newUserId} added successfully.`
@@ -82,7 +87,10 @@ app.post("/api/webhook", async (req, res) => {
     }
 
     if (message?.text?.startsWith("/removeuser")) {
+      console.log(`ℹ️ Received /removeuser command from user ID: ${userId}`);
+
       if (userId !== ADMIN_ID) {
+        console.log("❌ Unauthorized user tried to remove users.");
         await bot.sendMessage(
           chatId,
           "❌ You are not authorized to remove users."
@@ -90,8 +98,9 @@ app.post("/api/webhook", async (req, res) => {
         return res.status(403).send("Forbidden: Not admin.");
       }
 
-      const removeUserId = parseInt(message.text.split(" ")[1]);
+      const removeUserId = parseInt(message.text.split(" ")[1]); // Extract user ID
       if (!removeUserId || isNaN(removeUserId)) {
+        console.log("⚠️ Invalid user ID format.");
         await bot.sendMessage(
           chatId,
           "⚠️ Invalid user ID. Use `/removeuser <id>`."
@@ -100,6 +109,7 @@ app.post("/api/webhook", async (req, res) => {
       }
 
       await removeUser(removeUserId);
+      console.log(`❌ Removed user ${removeUserId} from Firestore`);
       await bot.sendMessage(
         chatId,
         `✅ User ID ${removeUserId} removed successfully.`
