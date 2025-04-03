@@ -57,7 +57,8 @@ app.post("/api/webhook", async (req, res) => {
     const APPROVED_USERS = await getApprovedUsers();
     console.log(`ℹ️ Approved users: ${APPROVED_USERS}`);
 
-    if (!APPROVED_USERS.includes(userId)) {
+    // Allow admin to bypass the approval check
+    if (userId !== ADMIN_ID && !APPROVED_USERS.includes(userId)) {
       console.log(`❌ User ${userId} is not authorized.`);
       if (message?.text && !message.text.startsWith("/start")) {
         return res.status(403).send("Forbidden: User not approved.");
