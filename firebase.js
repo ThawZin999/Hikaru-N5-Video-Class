@@ -27,18 +27,33 @@ const usersCollection = db.collection("approvedUsers");
 
 // ✅ Add user to Firestore
 const addUser = async (userId) => {
-  await usersCollection.doc(userId.toString()).set({ approved: true });
+  try {
+    await usersCollection.doc(userId.toString()).set({ approved: true });
+    console.log(`✅ User ${userId} added to Firestore`);
+  } catch (error) {
+    console.error("❌ Error adding user:", error);
+  }
 };
 
 // ✅ Remove user from Firestore
 const removeUser = async (userId) => {
-  await usersCollection.doc(userId.toString()).delete();
+  try {
+    await usersCollection.doc(userId.toString()).delete();
+    console.log(`❌ User ${userId} removed from Firestore`);
+  } catch (error) {
+    console.error("❌ Error removing user:", error);
+  }
 };
 
 // ✅ Get all approved users
 const getApprovedUsers = async () => {
-  const snapshot = await usersCollection.get();
-  return snapshot.docs.map((doc) => Number(doc.id));
+  try {
+    const snapshot = await usersCollection.get();
+    return snapshot.docs.map((doc) => Number(doc.id));
+  } catch (error) {
+    console.error("❌ Error getting approved users:", error);
+    return [];
+  }
 };
 
 export { db, usersCollection, addUser, removeUser, getApprovedUsers };
