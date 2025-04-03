@@ -9,6 +9,16 @@ const ADMIN_ID = 6057736787; // Your Telegram ID
 
 app.use(express.json());
 
+app.use((req, res, next) => {
+  if (req.path === "/api/webhook") {
+    console.log("ℹ️ Telegram request received.");
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Methods", "POST");
+    res.header("Access-Control-Allow-Headers", "Content-Type");
+  }
+  next();
+});
+
 // ✅ Get approved users from Firestore
 const getApprovedUsers = async () => {
   const snapshot = await usersCollection.get();
@@ -26,10 +36,13 @@ const removeUser = async (userId) => {
 };
 
 app.post("/api/webhook", async (req, res) => {
+  console.log("ℹ️ Webhook received:", JSON.stringify(req.body, null, 2)); // Debugging
+
   try {
     const { message, callback_query } = req.body;
 
     if (!message && !callback_query) {
+      console.log("⚠️ No valid message or callback received.");
       return res.status(400).send("No valid Telegram update found.");
     }
 
@@ -37,12 +50,15 @@ app.post("/api/webhook", async (req, res) => {
     const chatId = message?.chat?.id || callback_query?.message?.chat?.id;
 
     if (!userId || !chatId) {
+      console.log("⚠️ Missing userId or chatId.");
       return res.status(400).send("Invalid request data.");
     }
 
     const APPROVED_USERS = await getApprovedUsers();
+    console.log(`ℹ️ Approved users: ${APPROVED_USERS}`);
 
     if (!APPROVED_USERS.includes(userId)) {
+      console.log(`❌ User ${userId} is not authorized.`);
       if (message?.text && !message.text.startsWith("/start")) {
         return res.status(403).send("Forbidden: User not approved.");
       }
@@ -53,6 +69,8 @@ app.post("/api/webhook", async (req, res) => {
       );
       return res.status(403).send("Forbidden: User not approved.");
     }
+
+    console.log("✅ Authorized user, processing request...");
 
     // ✅ Handle Admin Commands
     if (message?.text?.startsWith("/adduser")) {
@@ -145,7 +163,7 @@ app.post("/api/webhook", async (req, res) => {
 
     res.sendStatus(200);
   } catch (error) {
-    console.error("Error processing request:", error);
+    console.error("❌ Error processing webhook:", error);
     res.status(500).send("Internal Server Error");
   }
 });
