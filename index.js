@@ -86,15 +86,15 @@ app.post("/api/webhook", async (req, res) => {
         return res.status(403).send("Forbidden: Not admin.");
       }
 
-      // Improved user ID extraction
-      const newUserId = message.text.split(" ")[1]?.replace(/[^0-9]/g, "");
+      // Extract user ID directly from the message text
+      const newUserId = message.text.trim().split(/\s+/)[1];
       const parsedUserId = parseInt(newUserId);
       
-      if (!parsedUserId || isNaN(parsedUserId)) {
+      if (!newUserId || !parsedUserId || isNaN(parsedUserId)) {
         console.log(`⚠️ Invalid user ID format: ${newUserId}`);
         await bot.sendMessage(
           chatId,
-          "⚠️ Invalid user ID. Use `/adduser <id>` with a valid numeric ID."
+          "⚠️ Invalid user ID. Please use `/adduser <id>` format."
         );
         return res.status(400).send("Invalid user ID.");
       }
