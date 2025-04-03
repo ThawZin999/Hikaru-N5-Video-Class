@@ -86,21 +86,24 @@ app.post("/api/webhook", async (req, res) => {
         return res.status(403).send("Forbidden: Not admin.");
       }
 
-      const newUserId = parseInt(message.text.split(" ")[1]); // Extract user ID
-      if (!newUserId || isNaN(newUserId)) {
-        console.log("⚠️ Invalid user ID format.");
+      // Improved user ID extraction
+      const newUserId = message.text.split(" ")[1]?.replace(/[^0-9]/g, "");
+      const parsedUserId = parseInt(newUserId);
+      
+      if (!parsedUserId || isNaN(parsedUserId)) {
+        console.log(`⚠️ Invalid user ID format: ${newUserId}`);
         await bot.sendMessage(
           chatId,
-          "⚠️ Invalid user ID. Use `/adduser <id>`."
+          "⚠️ Invalid user ID. Use `/adduser <id>` with a valid numeric ID."
         );
         return res.status(400).send("Invalid user ID.");
       }
 
-      await addUser(newUserId);
-      console.log(`✅ Added user ${newUserId} to Firestore`);
+      await addUser(parsedUserId);
+      console.log(`✅ Added user ${parsedUserId} to Firestore`);
       await bot.sendMessage(
         chatId,
-        `✅ User ID ${newUserId} added successfully.`
+        `✅ User ID ${parsedUserId} added successfully.`
       );
       return res.status(200).send("User added.");
     }
