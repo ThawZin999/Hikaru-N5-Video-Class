@@ -79,40 +79,21 @@ app.post("/api/webhook", async (req, res) => {
 
       if (userId !== ADMIN_ID) {
         console.log("❌ Unauthorized user tried to add users.");
-        await bot.sendMessage(
-          chatId,
-          "❌ You are not authorized to add users."
-        );
+        await bot.sendMessage(chatId, "❌ You are not authorized to add users.");
         return res.status(403).send("Forbidden: Not admin.");
       }
 
-      const commandParts = message.text.trim().split(/\s+/);
-      if (commandParts.length !== 2) {
-        console.log("⚠️ Invalid command format");
-        await bot.sendMessage(
-          chatId,
-          "⚠️ Please use the format: `/adduser <id>`"
-        );
-        return res.status(400).send("Invalid command format");
-      }
-
-      const newUserId = commandParts[1];
-      if (!/^\d+$/.test(newUserId)) {
+      const newUserId = message.text.replace("/adduser", "").trim();
+      if (!newUserId || !/^\d+$/.test(newUserId)) {
         console.log(`⚠️ Invalid user ID format: ${newUserId}`);
-        await bot.sendMessage(
-          chatId,
-          "⚠️ User ID must contain only numbers"
-        );
+        await bot.sendMessage(chatId, "⚠️ Please provide a valid numeric user ID");
         return res.status(400).send("Invalid user ID format");
       }
 
       const parsedUserId = parseInt(newUserId);
       await addUser(parsedUserId);
       console.log(`✅ Added user ${parsedUserId} to Firestore`);
-      await bot.sendMessage(
-        chatId,
-        `✅ User ID ${parsedUserId} added successfully.`
-      );
+      await bot.sendMessage(chatId, `✅ User ID ${parsedUserId} added successfully.`);
       return res.status(200).send("User added.");
     }
 
