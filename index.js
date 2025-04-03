@@ -51,29 +51,43 @@ app.post("/api/webhook", async (req, res) => {
 
     // ✅ Handle Admin Commands
     if (message?.text?.startsWith("/adduser")) {
+      console.log(`ℹ️ Received /adduser command from user ID: ${userId}`);
+
       if (userId !== ADMIN_ID) {
-        await bot.sendMessage(
-          chatId,
-          "❌ You are not authorized to add users."
-        );
+        console.log("❌ Unauthorized user tried to add users.");
+        await bot.sendMessage(chatId, "❌ You are not authorized to add users.");
         return res.status(403).send("Forbidden: Not admin.");
       }
 
-      const newUserId = message.text.replace("/adduser", "").trim();
-      if (!/^\d+$/.test(newUserId)) {
-        await bot.sendMessage(
-          chatId,
-          "⚠️ Please provide a valid numeric user ID"
-        );
-        return res.status(400).send("Invalid user ID format");
+      // Extract user ID properly
+      const args = message.text.split(" ");
+      if (args.length < 2) {
+        console.log("⚠️ No user ID provided.");
+        await bot.sendMessage(chatId, "⚠️ Usage: `/adduser <user_id>` (numeric ID required)");
+        return res.status(400).send("Invalid command usage.");
       }
 
-      await addUser(parseInt(newUserId));
-      await bot.sendMessage(
-        chatId,
-        `✅ User ID ${newUserId} added successfully.`
-      );
-      return res.status(200).send("User added.");
+      const newUserId = args[1].trim();
+
+      // Validate the ID is numeric
+      if (!/^\d+$/.test(newUserId)) {
+        console.log(`⚠️ Invalid user ID format: ${newUserId}`);
+        await bot.sendMessage(chatId, "⚠️ Please provide a valid numeric user ID.");
+        return res.status(400).send("Invalid user ID format.");
+      }
+
+      const parsedUserId = parseInt(newUserId, 10);
+
+      try {
+        await addUser(parsedUserId);
+        console.log(`✅ Added user ${parsedUserId} to Firestore`);
+        await bot.sendMessage(chatId, `✅ User ID ${parsedUserId} added successfully.`);
+        return res.status(200).send("User added.");
+      } catch (error) {
+        console.error("❌ Error adding user to Firestore:", error);
+        await bot.sendMessage(chatId, "❌ Failed to add user. Please try again.");
+        return res.status(500).send("Firestore error.");
+      }
     }
 
     if (message?.text?.startsWith("/removeuser")) {
