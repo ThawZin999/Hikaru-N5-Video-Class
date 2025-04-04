@@ -1,14 +1,18 @@
 import TelegramBot from "node-telegram-bot-api";
 import express from "express";
+import { Telegraf } from "telegraf";
 import {
   usersCollection,
   addUser,
   removeUser,
   getApprovedUsers,
 } from "../firebase.js";
+import { setupBookHandlers } from "../books.js";
+import { setupAdminHandlers } from "../admin.js";
 
 const TOKEN = process.env.BOT_TOKEN;
 const bot = new TelegramBot(TOKEN, { polling: false }); // No polling in webhook mode
+const telegrafBot = new Telegraf(TOKEN);
 const app = express();
 const ADMIN_ID = 6057736787; // Your Telegram ID
 
@@ -151,6 +155,10 @@ app.post("/api/webhook", async (req, res) => {
       }
       await bot.answerCallbackQuery(callback_query.id);
     }
+
+    // Set up Telegraf handlers
+    setupBookHandlers(telegrafBot);
+    setupAdminHandlers(telegrafBot);
 
     res.sendStatus(200);
   } catch (error) {
