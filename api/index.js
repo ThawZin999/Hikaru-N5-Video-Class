@@ -16,7 +16,7 @@ app.use(express.json());
 
 // ✅ Handle webhook requests
 app.post("/api/webhook", async (req, res) => {
-  console.log("ℹ️ Webhook received:", JSON.stringify(req.body, null, 2)); // Debugging
+  console.log("ℹ️ Webhook received:", JSON.stringify(req.body, null, 2));
 
   try {
     const { message, callback_query } = req.body;
@@ -34,33 +34,32 @@ app.post("/api/webhook", async (req, res) => {
       return res.status(400).send("Invalid request data.");
     }
 
-    const APPROVED_USERS = await getApprovedUsers(); // 🔥 Fix: Ensure Firestore reads properly
+    const APPROVED_USERS = await getApprovedUsers();
     console.log(`ℹ️ Approved users: ${APPROVED_USERS}`);
 
-    // Allow admin to bypass the approval check
-    if (userId !== ADMIN_ID && !APPROVED_USERS.includes(userId)) {
+    const isAdmin = userId === ADMIN_ID;
+    const isApproved = APPROVED_USERS.includes(userId);
+
+    // ✅ Block unauthorized users
+    if (!isAdmin && !isApproved) {
       console.log(`❌ User ${userId} is not authorized.`);
 
-      // Show generic message for normal commands like /start
-      if (message?.text && message.text.startsWith("/")) {
+      // Only reply if it's a command
+      if (message?.text?.startsWith("/")) {
         await bot.sendMessage(
           chatId,
           "❌ You are not authorized to use this bot."
         );
       }
 
-      // ✅ Always return 200 so Telegram doesn't retry the update
       return res.status(200).send("Unauthorized user handled.");
     }
 
     console.log("✅ Authorized user, processing request...");
 
-    // ✅ Handle Admin Commands
+    // ✅ Handle /adduser
     if (message?.text?.startsWith("/adduser")) {
-      console.log(`ℹ️ Received /adduser command from user ID: ${userId}`);
-
-      if (userId !== ADMIN_ID) {
-        console.log("❌ Unauthorized user tried to add users.");
+      if (!isAdmin) {
         await bot.sendMessage(
           chatId,
           "❌ You are not authorized to add users."
@@ -68,10 +67,8 @@ app.post("/api/webhook", async (req, res) => {
         return res.status(403).send("Forbidden: Not admin.");
       }
 
-      // Extract user ID properly
       const args = message.text.split(" ");
-      if (args.length < 2) {
-        console.log("⚠️ No user ID provided.");
+      if (args.length < 2 || !/^\d+$/.test(args[1])) {
         await bot.sendMessage(
           chatId,
           "⚠️ Usage: `/adduser <user_id>` (numeric ID required)"
@@ -79,26 +76,13 @@ app.post("/api/webhook", async (req, res) => {
         return res.status(400).send("Invalid command usage.");
       }
 
-      const newUserId = args[1].trim();
-
-      // Validate the ID is numeric
-      if (!/^\d+$/.test(newUserId)) {
-        console.log(`⚠️ Invalid user ID format: ${newUserId}`);
-        await bot.sendMessage(
-          chatId,
-          "⚠️ Please provide a valid numeric user ID."
-        );
-        return res.status(400).send("Invalid user ID format.");
-      }
-
-      const parsedUserId = parseInt(newUserId, 10);
+      const newUserId = parseInt(args[1], 10);
 
       try {
-        await addUser(parsedUserId);
-        console.log(`✅ Added user ${parsedUserId} to Firestore`);
+        await addUser(newUserId);
         await bot.sendMessage(
           chatId,
-          `✅ User ID ${parsedUserId} added successfully.`
+          `✅ User ID ${newUserId} added successfully.`
         );
         return res.status(200).send("User added.");
       } catch (error) {
@@ -111,8 +95,9 @@ app.post("/api/webhook", async (req, res) => {
       }
     }
 
+    // ✅ Handle /removeuser
     if (message?.text?.startsWith("/removeuser")) {
-      if (userId !== ADMIN_ID) {
+      if (!isAdmin) {
         await bot.sendMessage(
           chatId,
           "❌ You are not authorized to remove users."
@@ -120,7 +105,9 @@ app.post("/api/webhook", async (req, res) => {
         return res.status(403).send("Forbidden: Not admin.");
       }
 
-      const removeUserId = parseInt(message.text.split(" ")[1]); // Extract user ID
+      const args = message.text.split(" ");
+      const removeUserId = parseInt(args[1], 10);
+
       if (!removeUserId || isNaN(removeUserId)) {
         await bot.sendMessage(
           chatId,
@@ -137,21 +124,23 @@ app.post("/api/webhook", async (req, res) => {
       return res.status(200).send("User removed.");
     }
 
-    // ✅ Display Menu Options for Authorized Users
-    const options = {
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: "📚 Daily Lessons", callback_data: "daily_lessons" }],
-          [{ text: "📖 Units", callback_data: "units" }],
-        ],
-      },
-    };
+    // ✅ Show menu for /start or general messages
+    if (message?.text?.startsWith("/start") || message?.text) {
+      const options = {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: "📚 Daily Lessons", callback_data: "daily_lessons" }],
+            [{ text: "📖 Units", callback_data: "units" }],
+          ],
+        },
+      };
 
-    await bot.sendMessage(
-      chatId,
-      "Welcome to Hikaru N5 Video Class! Choose an option:",
-      options
-    );
+      await bot.sendMessage(
+        chatId,
+        "Welcome to Hikaru N5 Video Class! Choose an option:",
+        options
+      );
+    }
 
     // ✅ Handle Button Clicks
     if (callback_query) {
