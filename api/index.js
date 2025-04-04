@@ -7,7 +7,7 @@ import {
   removeUser,
   getApprovedUsers,
 } from "../firebase.js";
-import { setupBookHandlers } from "../books.js";
+import { setupLessonHandlers } from "../lessons.js";
 import { setupAdminHandlers } from "../admin.js";
 import { getMainMenu } from "../menu.js";
 
@@ -150,7 +150,7 @@ app.post("/api/webhook", async (req, res) => {
     }
 
     // Set up Telegraf handlers
-    setupBookHandlers(telegrafBot);
+    setupLessonHandlers(telegrafBot);
     setupAdminHandlers(telegrafBot);
 
     res.sendStatus(200);
