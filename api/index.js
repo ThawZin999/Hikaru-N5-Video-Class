@@ -9,6 +9,7 @@ import {
 } from "../firebase.js";
 import { setupBookHandlers } from "../books.js";
 import { setupAdminHandlers } from "../admin.js";
+import { getMainMenu } from "../menu.js";
 
 const TOKEN = process.env.BOT_TOKEN;
 const bot = new TelegramBot(TOKEN, { polling: false }); // No polling in webhook mode
@@ -129,21 +130,13 @@ app.post("/api/webhook", async (req, res) => {
     }
 
     // ✅ Show menu for /start or general messages
-    if (message?.text?.startsWith("/start") || message?.text) {
-      const options = {
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: "📚 Daily Lessons", callback_data: "daily_lessons" }],
-            [{ text: "📖 Units", callback_data: "units" }],
-          ],
-        },
-      };
-
-      await bot.sendMessage(
+    if (message?.text?.startsWith("/start")) {
+      await telegrafBot.telegram.sendMessage(
         chatId,
         "Welcome to Hikaru N5 Video Class! Choose an option:",
-        options
+        getMainMenu()
       );
+      return res.status(200).send("Start command handled.");
     }
 
     // ✅ Handle Button Clicks

@@ -1,5 +1,5 @@
-import { Markup } from "telegraf";
 import { getMessageIds } from "./messages.js";
+import { getBooksMenu, getInlineKeyboard } from "./menu.js";
 
 const groupId = -1002476040515; // Your group's chat ID
 
@@ -17,9 +17,7 @@ const handleBooks = async (ctx, category) => {
 
     await ctx.reply(
       "အချို့စာအုပ်များကိုဂိုဒေါင်ရှင်းအထူးလျှော့ဈေးဖြင့်ပေးထားပါတယ်။\nစာအုပ်ဝယ်ယူရန်အတွက် ဝယ်ယူမည့်စာအုပ်၏ codeကိုမှတ်ပြီး Adminနှင့်တိုက်ရိုက်ဆက်သွယ်မှာယူနိုင်ပါတယ်ခင်ဗျာ👇",
-      Markup.inlineKeyboard([
-        Markup.button.url("Admin နှင့်ဆက်သွယ်မည်", "https://t.me/hikarujls"),
-      ])
+      getInlineKeyboard()
     );
   } catch (error) {
     console.error("Error forwarding message:", error);
@@ -29,17 +27,7 @@ const handleBooks = async (ctx, category) => {
 
 export const setupBookHandlers = (bot) => {
   bot.hears("Hikaruမှ ဝယ်ယူနိုင်သည့်ဂျပန်စာအုပ်များ", (ctx) => {
-    ctx.reply(
-      "📚 Choose your Japanese level:",
-      Markup.keyboard([
-        ["📗 N5 Books", "📘 N4 Books"],
-        ["📙 N3 Books", "📕 N2 Books"],
-        ["📚 General Books"],
-        ["⬅️ Back"],
-      ])
-        .resize()
-        .oneTime(false)
-    );
+    ctx.reply("📚 Choose your Japanese level:", getBooksMenu());
   });
 
   bot.hears("📗 N5 Books", async (ctx) => {
