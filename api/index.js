@@ -41,15 +41,15 @@ app.post("/api/webhook", async (req, res) => {
     if (userId !== ADMIN_ID && !APPROVED_USERS.includes(userId)) {
       console.log(`❌ User ${userId} is not authorized.`);
 
-      // Optional: avoid spamming by not replying to every message
-      if (message?.text && !message.text.startsWith("/start")) {
+      // Show generic message for normal commands like /start
+      if (message?.text && message.text.startsWith("/")) {
         await bot.sendMessage(
           chatId,
           "❌ You are not authorized to use this bot."
         );
       }
 
-      // ✅ Always return 200 so Telegram doesn't retry the same message
+      // ✅ Always return 200 so Telegram doesn't retry the update
       return res.status(200).send("Unauthorized user handled.");
     }
 
