@@ -40,11 +40,17 @@ app.post("/api/webhook", async (req, res) => {
     // Allow admin to bypass the approval check
     if (userId !== ADMIN_ID && !APPROVED_USERS.includes(userId)) {
       console.log(`❌ User ${userId} is not authorized.`);
-      await bot.sendMessage(
-        chatId,
-        "❌ You are not authorized to use this bot."
-      );
-      return res.status(403).send("Forbidden: User not approved.");
+
+      // Optional: avoid spamming by not replying to every message
+      if (message?.text && !message.text.startsWith("/start")) {
+        await bot.sendMessage(
+          chatId,
+          "❌ You are not authorized to use this bot."
+        );
+      }
+
+      // ✅ Always return 200 so Telegram doesn't retry the same message
+      return res.status(200).send("Unauthorized user handled.");
     }
 
     console.log("✅ Authorized user, processing request...");
