@@ -38,7 +38,7 @@ app.post("/api/webhook", async (req, res) => {
     console.log(`ℹ️ Approved users: ${APPROVED_USERS}`);
 
     const isAdmin = userId === ADMIN_ID;
-    const isApproved = APPROVED_USERS.includes(userId);
+    const isApproved = APPROVED_USERS.map(String).includes(String(userId));
 
     // ✅ Block unauthorized users
     if (!isAdmin && !isApproved) {
