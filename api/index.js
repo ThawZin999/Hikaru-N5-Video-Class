@@ -104,10 +104,18 @@ app.post("/api/webhook", async (req, res) => {
 
     // ✅ Handle Button Clicks
     if (callback_query) {
+      const ctx = {
+        telegram: telegrafBot.telegram,
+        chat: { id: chatId },
+        reply: async (text, extra) => {
+          await bot.sendMessage(chatId, text, extra);
+        },
+      };
+
       if (callback_query.data === "daily_lessons") {
-        await bot.sendMessage(chatId, "📅 Here are your daily lessons...");
+        await handleLessons(ctx, "daily_lessons");
       } else if (callback_query.data === "units") {
-        await bot.sendMessage(chatId, "📖 Here are the available units...");
+        await handleLessons(ctx, "units");
       }
       await bot.answerCallbackQuery(callback_query.id);
     }
