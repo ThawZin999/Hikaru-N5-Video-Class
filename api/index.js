@@ -7,7 +7,7 @@ import {
   removeUser,
   getApprovedUsers,
 } from "../firebase.js";
-import { setupLessonHandlers } from "../lessons.js";
+import { setupLessonHandlers, handleLessons } from "../lessons.js";
 import { setupAdminHandlers } from "../admin.js";
 import { getMainMenu } from "../menu.js";
 
@@ -112,10 +112,12 @@ app.post("/api/webhook", async (req, res) => {
         },
       };
 
-      if (callback_query.data === "daily_lessons") {
-        await handleLessons(ctx, "daily_lessons");
-      } else if (callback_query.data === "units") {
-        await handleLessons(ctx, "units");
+      // Handle lesson-related callbacks
+      if (
+        callback_query.data === "daily_lessons" ||
+        callback_query.data === "units"
+      ) {
+        await handleLessons(ctx, callback_query.data);
       }
       await bot.answerCallbackQuery(callback_query.id);
     }
