@@ -66,71 +66,30 @@ app.post("/api/webhook", async (req, res) => {
 
     console.log("✅ Authorized user, processing request...");
 
-    // ✅ Handle /adduser
-    if (message?.text?.startsWith("/adduser")) {
-      if (!isAdmin) {
-        await bot.sendMessage(
-          chatId,
-          "❌ You are not authorized to add users."
-        );
-        return res.status(403).send("Forbidden: Not admin.");
+    // ✅ Handle admin commands
+    if (message?.text?.startsWith("/")) {
+      const command = message.text.split(" ")[0].toLowerCase();
+      const adminCommands = [
+        "/adduser",
+        "/removeuser",
+        "/addmessages",
+        "/updatemessages",
+        "/deletemessages",
+      ];
+
+      if (adminCommands.includes(command)) {
+        if (!isAdmin) {
+          await bot.sendMessage(
+            chatId,
+            "❌ You are not authorized to use admin commands."
+          );
+          return res.status(403).send("Forbidden: Not admin.");
+        }
+
+        // Let Telegraf handle the command
+        await telegrafBot.handleUpdate(req.body);
+        return res.status(200).send("Admin command handled.");
       }
-
-      const args = message.text.split(" ");
-      if (args.length < 2 || !/^\d+$/.test(args[1])) {
-        await bot.sendMessage(
-          chatId,
-          "⚠️ Usage: `/adduser <user_id>` (numeric ID required)"
-        );
-        return res.status(400).send("Invalid command usage.");
-      }
-
-      const newUserId = parseInt(args[1], 10);
-
-      try {
-        await addUser(newUserId);
-        await bot.sendMessage(
-          chatId,
-          `✅ User ID ${newUserId} added successfully.`
-        );
-        return res.status(200).send("User added.");
-      } catch (error) {
-        console.error("❌ Error adding user to Firestore:", error);
-        await bot.sendMessage(
-          chatId,
-          "❌ Failed to add user. Please try again."
-        );
-        return res.status(500).send("Firestore error.");
-      }
-    }
-
-    // ✅ Handle /removeuser
-    if (message?.text?.startsWith("/removeuser")) {
-      if (!isAdmin) {
-        await bot.sendMessage(
-          chatId,
-          "❌ You are not authorized to remove users."
-        );
-        return res.status(403).send("Forbidden: Not admin.");
-      }
-
-      const args = message.text.split(" ");
-      const removeUserId = parseInt(args[1], 10);
-
-      if (!removeUserId || isNaN(removeUserId)) {
-        await bot.sendMessage(
-          chatId,
-          "⚠️ Invalid user ID. Use `/removeuser <id>`."
-        );
-        return res.status(400).send("Invalid user ID.");
-      }
-
-      await removeUser(removeUserId);
-      await bot.sendMessage(
-        chatId,
-        `✅ User ID ${removeUserId} removed successfully.`
-      );
-      return res.status(200).send("User removed.");
     }
 
     // ✅ Show menu for /start or general messages
